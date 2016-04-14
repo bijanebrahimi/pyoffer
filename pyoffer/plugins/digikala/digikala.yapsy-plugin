@@ -1,0 +1,9 @@
+[Core]
+Name = پیشنهاد شگفت‌انگیز دیجی‌کالا
+Module = digikala
+
+[Documentation]
+Author = Bijan Ebrahimi
+Version = 0.1
+Website = http://bijanebrahimi.github.io/blog
+Description = DigiKala for PyOffer
