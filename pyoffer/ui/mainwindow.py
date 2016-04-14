@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-
+# From Python
+import os
 import sys
+# From PyQt5
 from PyQt5.QtWidgets import QMainWindow, QListWidgetItem, QVBoxLayout
 from PyQt5.uic import loadUi
 
@@ -15,8 +17,9 @@ class MainWindow(QMainWindow):
         self.loadPlugins()
 
     def setupUi(self):
-        self.ui = loadUi('pyoffer/ui/mainwindow.ui', self)
-        self.setWindowTitle('Simple')
+        ui_path = os.path.join(os.path.dirname(__file__), 'mainwindow.ui')
+        self.ui = loadUi(ui_path, self)
+        self.setWindowTitle('PyOffer')
 
     def setupConnections(self):
         self.ui.plugins.currentRowChanged.connect(self.ui.widget.setCurrentIndex)

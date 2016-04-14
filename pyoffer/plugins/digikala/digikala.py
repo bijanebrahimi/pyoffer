@@ -15,12 +15,6 @@ from PyQt5.QtGui import QPixmap
 # From PyOffer
 from pyoffer.libs.utils import json_serial
 
-def showError(text, title="Error"):
-    mes = QMessageBox(text=text)
-    mes.setWindowTitle('Eroooooor')
-    mes.exec()
-
-
 class Digikala(object):
     """docstring for Digikala"""
     def __init__(self, api_url=None, static_relative_path=None):
@@ -76,16 +70,11 @@ class Digikala(object):
         base_name = os.path.basename(url)
         file_path = os.path.join(self.__cache_dir, base_name)
         url = self.__static_relative_path + '/' + url
-        # try:
         if not os.path.exists(file_path):
             with open(file_path, 'wb') as f:
                 response = requests.get(url)
                 f.write(response.content)
         return file_path
-        # except:
-        #     print(ur)
-        # finally:
-        #     return None
 
     def __save_cache(self, offers):
         try:
@@ -105,7 +94,10 @@ class Digikala(object):
 
     def is_expired(self):
         for offer in self.__offers:
-            if offer['EndDateTime'] <= datetime.now():
+            end_datetime = offer['EndDateTime']
+            if isinstance(offer['EndDateTime'], str):
+                end_datetime = datetime_parser(end_datetime)
+            if end_datetime <= datetime.now():
                 return True
         return False
 
@@ -141,8 +133,7 @@ class DigikalaWidget(QWidget):
     def updateClicked(self):
         try:
             self.updateBtn.setEnabled(False)
-            # self.__digikala.load(disable_cache=self.__digikala.is_expired())
-            self.__digikala.load(disable_cache=False)
+            self.__digikala.load(disable_cache=self.__digikala.is_expired())
             self.setupWidgets()
         except:
             pass
