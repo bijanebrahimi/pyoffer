@@ -8,7 +8,7 @@ Note: Installation requires you to install `pyqt5` package first. I hope we can
 add it later to setup process, but for now first install it manually and then:
 
 ```
-git clone git@github.com:bijanebrahimi/PyOffer.git
+git clone --branch develop git@github.com:bijanebrahimi/PyOffer.git
 cd pyoffer
 python setup.py install
 ```
