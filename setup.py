@@ -17,7 +17,7 @@ class PyTest(TestCommand):
         sys.exit(errno)
 
 setup(name='pyoffer',
-      version='0.0.1',
+      version='0.0.2',
       description='pyoffer tracks special offers on Internet',
       url='http://github.com/bijanebrahimi/pyoffer',
       author='Bijan Ebrahimi',

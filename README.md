@@ -21,16 +21,24 @@ By installing the package, `pyoffer-gui` should be available from terminal.
 $ pyoffer-gui
 ```
 
+# ScreenShots
+
+![پیشنهاد شگفت‌انگیز دیجی‌کالا](http://bijanebrahimi.github.io/PyOffer/screenshots/digikala-plugin.png)
+
+![packtpub Free Learning](http://bijanebrahimi.github.io/PyOffer/screenshots/packtpub-plugin.png)
+
 ## TODO
 
 * Documentation
 * MOAR DOCUMENTATION!
 * Auto-update
-* Non-blocking Updates
 * Desktop Notification
 * Sys-Tray Icon
 
 ## CHANGELOG
+
+### 0.0.2
+- Plugin Interface Introduced
 
 ### 0.0.1
 - Digikala Special Offers Support Added
