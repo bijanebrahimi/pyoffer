@@ -28,7 +28,8 @@ class MainWindow(QMainWindow):
         from pyoffer.libs.plugins import plugin_manager
         for plugin in plugin_manager.getAllPlugins():
             self.ui.plugins.addItem(QListWidgetItem(plugin.name))
-            plugin_widget = plugin.plugin_object.widget
+            plugin_object = plugin.plugin_object
+            plugin_widget = plugin_object.getWidget()
             self.ui.widget.addWidget(plugin_widget)
         self.plugins.setCurrentRow(0)
 

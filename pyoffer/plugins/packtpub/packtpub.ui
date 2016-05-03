@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>443</width>
-    <height>383</height>
+    <width>496</width>
+    <height>493</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,14 +17,14 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="QPushButton" name="updateBtn">
+      <widget class="QPushButton" name="updateButton">
        <property name="text">
         <string>Update</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="openBtn">
+      <widget class="QPushButton" name="claimButton">
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -47,7 +47,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QLabel" name="expire">
+      <widget class="QLabel" name="expireLabel">
        <property name="text">
         <string>Expire</string>
        </property>
@@ -57,6 +57,43 @@
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <spacer name="horizontalSpacer_5">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="titleLabel">
+       <property name="text">
+        <string>Title</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_4">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
       <spacer name="horizontalSpacer_2">
        <property name="orientation">
@@ -71,15 +108,18 @@
       </spacer>
      </item>
      <item>
-      <widget class="QLabel" name="image">
+      <widget class="QLabel" name="coverLabel">
        <property name="minimumSize">
         <size>
          <width>224</width>
-         <height>276</height>
+         <height>286</height>
         </size>
        </property>
        <property name="text">
-        <string/>
+        <string>Cover</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignJustify|Qt::AlignVCenter</set>
        </property>
       </widget>
      </item>

@@ -2,188 +2,173 @@
 import os
 import json
 import requests
-import tempfile
 import webbrowser
-from dateutil.parser import parse as datetime_parser
+from threading import Thread, Lock
+from dateutil import parser, tz
 from datetime import datetime
-# From Yapsi
-from yapsy.IPlugin import IPlugin
 # From PyQt5
-from PyQt5.QtWidgets import QWidget, QMessageBox
 from PyQt5.uic import loadUi
-from PyQt5.QtGui import QPixmap
 # From PyOffer
-from pyoffer.libs.utils import json_serial
-
-class Digikala(object):
-    """docstring for Digikala"""
-    def __init__(self, api_url=None, static_relative_path=None):
-        super(Digikala, self).__init__()
-
-        self.__api_url = api_url if api_url else 'http://search.digikala.com/api2/Data/Get?incredibleOnly=true'
-        self.__static_relative_path = static_relative_path if static_relative_path else 'http://file.digikala.com/Digikala'
-        self.__cache_dir = '/tmp/digikala'
-
-        self.__offers = []
-        if not os.path.exists(self.__cache_dir):
-            os.mkdir(self.__cache_dir)
-        if os.path.exists(os.path.join(self.__cache_dir, 'offers.json')):
-            with open(os.path.join(self.__cache_dir, 'offers.json'), 'r') as f:
-                self.__offers = json.load(f)
-
-    def load(self, disable_cache=False):
-        success = False
-        if not disable_cache:
-            success = self.loadFromCache()
-        if not success or disable_cache:
-            success = self.loadFromAPI()
-        return success
-
-    def loadFromAPI(self):
-        response = requests.get(self.__api_url)
-        json_response = json.loads(response.content.decode('UTF-8'))
-        json_offers = json_response['responses'][0]['hits']['hits']
-        parsed_offers = self.__parse_offers(json_offers)
-        self.__save_cache(parsed_offers)
-        self.__offers = parsed_offers
-
-    def loadFromCache(self):
-        cached_request = os.path.join(self.__cache_dir, 'offers.json')
-        if os.path.exists(cached_request):
-            with open(cached_request, 'r') as f:
-                json_offers = json.load(f)
-            self.__offers = json_offers
-            return True
-        return False
-
-    def __parse_offers(self, offers):
-        parsed_offers = []
-        for offer in offers:
-            offer_source = offer['_source']
-            offer_source['ImageLocalPath'] = self.__retrieve_url(offer_source['ImagePath'])
-            offer_source['StartDateTime'] = datetime_parser(offer_source['StartDateTime'])
-            offer_source['EndDateTime'] = datetime_parser(offer_source['EndDateTime'])
-            parsed_offers.append(offer_source)
-        return parsed_offers
-
-    def __retrieve_url(self, url):
-        base_name = os.path.basename(url)
-        file_path = os.path.join(self.__cache_dir, base_name)
-        url = self.__static_relative_path + '/' + url
-        if not os.path.exists(file_path):
-            with open(file_path, 'wb') as f:
-                response = requests.get(url)
-                f.write(response.content)
-        return file_path
-
-    def __save_cache(self, offers):
-        try:
-            if offers:
-                with open(os.path.join(self.__cache_dir, 'offers.json'), 'w') as f:
-                    json.dump(offers, f, default=json_serial)
-        finally:
-            return True
-
-    def getOffer(self, index=0):
-        return self.__offers[index]
-
-    def count(self):
-        if not self.__offers:
-            return -1
-        return len(self.__offers)
-
-    def is_expired(self):
-        for offer in self.__offers:
-            end_datetime = offer['EndDateTime']
-            if isinstance(offer['EndDateTime'], str):
-                end_datetime = datetime_parser(end_datetime)
-            if end_datetime <= datetime.now():
-                return True
-        return False
-
-    def expire(self):
-        for offer in self.__offers:
-            return offer['EndDateTime'].strftime("%H:%M")
-        return ''
+from pyoffer.libs.plugin import Plugin, PluginWidget, PluginModel
+from pyoffer.libs.widgets import QRemoteImage
 
 
-class DigikalaWidget(QWidget):
+class DigikalaItem(object):
+    """docstring for DigikalaItem"""
+    def __init__(self, product_id, title, image_url, expire_datetime):
+        super(DigikalaItem, self).__init__()
+        self.product_id = product_id
+        self.title = title
+        self.image_url = image_url
+        self.expire_datetime = expire_datetime
+
+    def getTitle(self):
+        return self.title
+
+    def setTitle(self, title):
+        self.title = title
+
+    def getProductId(self):
+        return self.product_id
+
+    def setProductId(self, product_id):
+        self.product_id = product_id
+
+    def getLink(self):
+        return "http://www.digikala.com/Product/DKP-%s" % self.getProductId()
+
+    def getImageUrl(self):
+        return self.image_url
+
+    def setImageUrl(self, image_url):
+        self.image_url = image_url
+
+    def getExpireDatetime(self):
+        return self.expire_datetime
+
+    def setExpireDatetime(self, expire_datetime):
+        self.expire_datetime = expire_datetime
+
+    def getFormattedExpiration(self):
+        return self.expire_datetime.strftime("%A, %d %B %H:%M")
+
+
+class DigikalaModel(PluginModel):
+    """docstring for DigikalaModel"""
+    def __init__(self):
+        super(DigikalaModel, self).__init__()
+        self.api = "http://search.digikala.com/api2/Data/Get?incredibleOnly=true"
+        self.lock = Lock()
+        self.offers = []
+        self.current_position = None
+
+    def update(self):
+        thread = Thread(target=self.run)
+        thread.daemon = True
+        thread.start()
+
+    def run(self):
+        with self.lock:
+            self.notifyUpdating()
+            # try:
+            response = requests.get(self.api)
+            response_json = json.loads(response.content.decode('utf-8'))
+            offers_list = response_json['responses'][0]['hits']['hits']
+            offers = []
+            for offer in offers_list:
+                product_id = offer['_source']['ProductId']
+                title = offer['_source']['FaTitle']
+                image = 'http://file.digikala.com/Digikala/%s' % offer['_source']['ImagePath']
+                expiration_utc = parser.parse(offer['_source']['EndDateTime'])
+                expiration = expiration_utc.astimezone(tz.tzlocal())
+                offers.append(DigikalaItem(product_id,
+                                           title,
+                                           image,
+                                           expiration))
+            self.offers = offers
+            self.current_position = None
+            self.notifyChange()
+            # except:
+            #     pass
+            self.notifyUpdated()
+
+
+class DigikalaWidget(PluginWidget):
     """docstring for DigikalaWidget"""
-    def __init__(self, parent=None):
-        super(DigikalaWidget, self).__init__(parent=parent)
-        self.setupUi()
-        self.setupConnections()
-
-        self.__digikala = Digikala()
-        self.__digikala_index = 0
-        if self.__digikala.loadFromCache():
-            self.setupWidgets()
+    def __init__(self):
+        super(DigikalaWidget, self).__init__()
+        self.model = DigikalaModel()
+        self.model.registerChange(self)
+        self.model.registerUpdated(self)
+        self.model.registerUpdating(self)
 
     def setupUi(self):
         ui_path = os.path.join(os.path.dirname(__file__), 'digikala.ui')
-        loadUi(ui_path, self)
+        self.ui = loadUi(ui_path, self)
 
     def setupConnections(self):
-        self.updateBtn.clicked.connect(self.updateClicked)
-        self.nextBtn.clicked.connect(self.nextClicked)
-        self.prevBtn.clicked.connect(self.prevClicked)
-        self.openBtn.clicked.connect(self.openClicked)
-        self.comboBox.currentIndexChanged.connect(self.setCurrentOfferIndex)
+        self.ui.updateButton.clicked.connect(self.updateClicked)
+        self.ui.nextButton.clicked.connect(self.nextClicked)
+        self.ui.prevButton.clicked.connect(self.prevClicked)
+        self.ui.shopButton.clicked.connect(self.shopClicked)
+        self.ui.comboBox.currentIndexChanged.connect(self.setCurrentOfferIndex)
 
     def updateClicked(self):
-        try:
-            self.updateBtn.setEnabled(False)
-            self.__digikala.load(disable_cache=self.__digikala.is_expired())
-            self.setupWidgets()
-        except:
-            pass
-        finally:
-            self.updateBtn.setEnabled(True)
+        self.model.update()
 
-    def setupWidgets(self):
-        if self.__digikala.count():
-            self.nextBtn.setEnabled(True)
-            self.prevBtn.setEnabled(True)
-            self.comboBox.setEnabled(True)
-            self.openBtn.setEnabled(True)
-            self.setCurrentOfferIndex(index=0)
-            self.comboBox.clear()
-            for index in range(self.__digikala.count()):
-                offer = self.__digikala.getOffer(index)
-                self.comboBox.addItem(offer['Title'])
-        else:
-            self.nextBtn.setEnabled(False)
-            self.openBtn.setEnabled(False)
-            self.prevBtn.setEnabled(False)
-            self.comboBox.setEnabled(False)
+    def modelChanged(self):
+        self.ui.comboBox.clear()
+        for offer in self.model.offers:
+            self.ui.comboBox.addItem(offer.getTitle())
+        self.ui.comboBox.setCurrentIndex(0)
+
+    def modelUpdated(self):
+        self.ui.updateButton.setEnabled(True)
+        if self.model.offers:
+            self.ui.nextButton.setEnabled(True)
+            self.ui.prevButton.setEnabled(True)
+            self.ui.shopButton.setEnabled(True)
+            self.ui.comboBox.setEnabled(True)
+
+    def modelUpdating(self):
+        self.ui.nextButton.setEnabled(False)
+        self.ui.prevButton.setEnabled(False)
+        self.ui.shopButton.setEnabled(False)
+        self.ui.updateButton.setEnabled(False)
+        self.ui.comboBox.setEnabled(False)
 
     def setCurrentOfferIndex(self, index=0):
-        if index >= self.__digikala.count():
-            index = 0
-        elif index < 0:
-            index = self.__digikala.count() -1
-        self.__digikala_index = index
-        offer = self.__digikala.getOffer(index)
-        image_path = offer['ImageLocalPath']
-
-        self.ImageLbl.setPixmap(QPixmap(image_path))
-        self.comboBox.setCurrentIndex(index)
+        item = self.model.offers[index]
+        self.ui.titleLabel.setText(item.getTitle())
+        self.ui.expirationLabel.setText(item.getFormattedExpiration())
+        product_image = QRemoteImage.getInstance(item.getImageUrl(), self.ui.imageLabel)
+        product_image.update()
 
     def nextClicked(self):
-        self.setCurrentOfferIndex(index=self.__digikala_index+1)
+        index = self.ui.comboBox.currentIndex()
+        count = self.ui.comboBox.count()
+        next_index = (index + 1) % count
+        self.ui.comboBox.setCurrentIndex(next_index)
 
     def prevClicked(self):
-        self.setCurrentOfferIndex(index=self.__digikala_index-1)
+        next_index = self.ui.comboBox.currentIndex() - 1
+        count = self.ui.comboBox.count()
+        if next_index < 0 and count:
+            next_index = count - 1
+        self.ui.comboBox.setCurrentIndex(next_index)
 
-    def openClicked(self):
-        index = self.__digikala_index
-        offer = self.__digikala.getOffer(index)
-        url = 'http://www.digikala.com/Product/DKP-%s' % offer['ProductId']
-        webbrowser.open(url)
+    def shopClicked(self):
+        index = self.ui.comboBox.currentIndex()
+        item = self.model.offers[index]
+        product_lilnk = item.getLink()
+        webbrowser.open(product_lilnk)
 
 
-class DigikalaPlugin(IPlugin):
+class DigikalaPlugin(Plugin):
     """docstring for DigikalaPlugin"""
     def __init__(self):
         super(DigikalaPlugin, self).__init__()
         self.widget = DigikalaWidget()
+
+    def getWidget(self):
+        return self.widget
