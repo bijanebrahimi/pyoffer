@@ -4,9 +4,10 @@ python:
   - "3.3"
   - "3.5"
 before_install:
+  - sudo apt-add-repository ppa:ubuntu-sdk-team/ppa
   - sudo apt-get -qq update
   - sudo apt-cache search qt5
-  - sudo apt-get install -y qt5-default
+  - sudo apt-get install -y qtdeclarative5-dev
   - cd ..
   - curl -O -L http://sourceforge.net/projects/pyqt/files/sip/sip-4.16.5/sip-4.16.5.tar.gz
   - tar -xvf sip-4.16.5.tar.gz
