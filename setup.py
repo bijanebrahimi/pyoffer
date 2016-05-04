@@ -25,7 +25,7 @@ setup(name='pyoffer',
       license='GPLv3',
       packages=find_packages(),
       include_package_data=True,
-      install_requires=['yapsy', 'pyquery', 'pyqt5'],
+      install_requires=['yapsy', 'pyquery'],
       test_suite='tests',
       entry_points="""
       [console_scripts]
