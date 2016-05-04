@@ -4,6 +4,8 @@ python:
   - "3.3"
   - "3.5"
 before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y qt5
   - cd ..
   - curl -O -L http://sourceforge.net/projects/pyqt/files/sip/sip-4.16.5/sip-4.16.5.tar.gz
   - tar -xvf sip-4.16.5.tar.gz
