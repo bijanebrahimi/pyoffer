@@ -3,8 +3,6 @@ python:
   - "2.7"
   - "3.3"
   - "3.5"
-virtualenv:
-  system_site_packages: true
 before_install:
   - cd ..
   - curl -O -L http://sourceforge.net/projects/pyqt/files/sip/sip-4.16.5/sip-4.16.5.tar.gz
