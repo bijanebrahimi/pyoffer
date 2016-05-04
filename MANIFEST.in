@@ -1,0 +1,3 @@
+include pyoffer/ui/mainwindow.ui
+include pyoffer/plugins/*/*.ui
+include pyoffer/plugins/*/*.yapsy-plugin

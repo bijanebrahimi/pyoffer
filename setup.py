@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Fro Python
 import sys
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
 
@@ -23,11 +23,9 @@ setup(name='pyoffer',
       author='Bijan Ebrahimi',
       author_email='bijanebrahimi@riseup.net',
       license='GPLv3',
-      packages=['pyoffer'],
-      package_data={'pyoffer': ['*.ui', '*.yapsy-plugin']},
+      packages=find_packages(),
       include_package_data=True,
-
-      install_requires=['yapsy', 'pyquery'], # 'python-qt5',
+      install_requires=['yapsy', 'pyquery', 'pyqt5'],
       test_suite='tests',
       entry_points="""
       [console_scripts]
