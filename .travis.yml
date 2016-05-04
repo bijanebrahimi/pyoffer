@@ -7,7 +7,7 @@ before_install:
   - yes "yes" | sudo apt-add-repository -y ppa:beineri/opt-qt551
   - sudo apt-get -qq update
   - sudo apt-cache search qt5
-  - sudo apt-get install -y qt-latest qt5-default
+  - sudo apt-get install -y qt-latest
   - cd ..
   - curl -O -L http://sourceforge.net/projects/pyqt/files/sip/sip-4.16.5/sip-4.16.5.tar.gz
   - tar -xvf sip-4.16.5.tar.gz
