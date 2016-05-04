@@ -3,8 +3,22 @@ python:
   - "2.7"
   - "3.3"
   - "3.5"
+virtualenv:
+  system_site_packages: true
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y pyqt5-dev
+  - cd ..
+  - curl -O -L http://sourceforge.net/projects/pyqt/files/sip/sip-4.16.5/sip-4.16.5.tar.gz
+  - tar -xvf sip-4.16.5.tar.gz
+  - cd sip-4.16.5
+  - python configure.py
+  - make -j 4
+  - sudo make install
+  - cd ..
+  - curl -O -L https://sourceforge.net/projects/pyqt/files/PyQt5/PyQt-5.3.2/PyQt-gpl-5.3.2.tar.gz
+  - tar -xvf PyQt-gpl-5.3.2.tar.gz
+  - cd PyQt-gpl-5.3.2
+  - python configure.py --confirm-license
+  - make -j 4
+  - sudo make install
 install: "python setup.py install"
 script: "python setup.py test"
