@@ -1,5 +1,6 @@
 # From Python
 import os
+import re
 import json
 import requests
 import webbrowser
@@ -15,11 +16,14 @@ from pyoffer.libs.widgets import QRemoteImage
 
 class DigikalaItem(object):
     """docstring for DigikalaItem"""
-    def __init__(self, product_id, title, image_url, expire_datetime):
+    def __init__(self, product_id, title, image_url, expire_datetime, features, price=0, discounted=0):
         super(DigikalaItem, self).__init__()
         self.product_id = product_id
         self.title = title
         self.image_url = image_url
+        self.features = features
+        self.price = price
+        self.discounted = discounted
         self.expire_datetime = expire_datetime
 
     def getTitle(self):
@@ -78,13 +82,26 @@ class DigikalaModel(PluginModel):
             for offer in offers_list:
                 product_id = offer['_source']['ProductId']
                 title = offer['_source']['FaTitle']
-                image = 'http://file.digikala.com/Digikala/%s' % offer['_source']['ImagePath']
-                expiration_utc = parser.parse(offer['_source']['EndDateTime'])
-                expiration = expiration_utc.astimezone(tz.tzlocal())
+                features = offer['_source']['KeyFeatures']
+                price = int(int(offer['_source']['Price']) / 10000)
+                discounted = int(price - int(offer['_source']['Discount']) / 10000)
+                title = offer['_source']['FaTitle']
+                image = 'http://file.digikala.com/Digikala/%s' % offer['_source']['ProductImagePath']
+                image = image.replace('/Original/', '/220/')
+                expiration_endtime = offer['_source']['EndDateTime']
+                expiration_utc = parser.parse(expiration_endtime)
+                if not expiration_endtime.endswith('Z'):
+                    expiration = expiration_utc
+                else:
+                    expiration = expiration_utc.astimezone(tz.tzlocal())
+
                 offers.append(DigikalaItem(product_id,
                                            title,
                                            image,
-                                           expiration))
+                                           expiration,
+                                           features,
+                                           price,
+                                           discounted))
             self.offers = offers
             self.current_position = None
             self.notifyChange()
@@ -101,6 +118,8 @@ class DigikalaWidget(PluginWidget):
         self.model.registerChange(self)
         self.model.registerUpdated(self)
         self.model.registerUpdating(self)
+
+        self.product_image = None
 
     def setupUi(self):
         ui_path = os.path.join(os.path.dirname(__file__), 'digikala.ui')
@@ -140,9 +159,16 @@ class DigikalaWidget(PluginWidget):
     def setCurrentOfferIndex(self, index=0):
         item = self.model.offers[index]
         self.ui.titleLabel.setText(item.getTitle())
+        self.ui.priceLabel.setText(str(item.price))
+        self.ui.discountedLabel.setText(str(item.discounted))
+        self.ui.featuresLabel.setText(str(item.features))
         self.ui.expirationLabel.setText(item.getFormattedExpiration())
-        product_image = QRemoteImage.getInstance(item.getImageUrl(), self.ui.imageLabel)
-        product_image.update()
+        # FIXME: remove current QRemoteImage's parent to stop updating imageLabel
+        if self.product_image:
+            self.product_image.setParent(parent=None)
+        self.product_image = QRemoteImage.getInstance(item.getImageUrl(), self.ui.imageLabel)
+        self.product_image.setParent(parent=self.ui.imageLabel)
+        self.product_image.update()
 
     def nextClicked(self):
         index = self.ui.comboBox.currentIndex()

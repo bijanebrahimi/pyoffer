@@ -31,9 +31,9 @@ class QRemoteImage(QImage):
             pixmap = QPixmap()
         return pixmap
 
-    def update(self, loading_message='Loading Image ...'):
+    def update(self, loading_message='Loading Image ....'):
         if not self.image_data:
-            self.parent.setText(loading_message)
+            self.setParentText(loading_message)
             thread = Thread(target=self.run)
             thread.daemon = True
             thread.start()
@@ -41,9 +41,29 @@ class QRemoteImage(QImage):
             self.setParentPixmap()
 
     def run(self):
-        res = requests.get(self.url)
-        self.image_data = res.content
+        response = requests.get(self.url, stream=True)
+        total_length = response.headers.get('content-length')
+        if not total_length:
+            self.image_data = response.content
+        else:
+            dl = 0
+            image_data = b""
+            total_length = int(total_length)
+            for data in response.iter_content():
+                dl += len(data)
+                image_data += data
+                done = int((dl / total_length)*100)
+                self.setParentText("Loading %%%s" % done)
+            self.image_data = image_data
         self.setParentPixmap()
 
     def setParentPixmap(self):
-        self.parent.setPixmap(self.toPixmap())
+        if self.parent:
+            self.parent.setPixmap(self.toPixmap())
+
+    def setParentText(self, text):
+        if self.parent:
+            self.parent.setText(text)
+
+    def setParent(self, parent):
+        self.parent = parent
